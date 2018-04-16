@@ -1,0 +1,27 @@
+{
+  "name": "gale-crater",
+  "version": "0.1.0",
+  "description": "Azure Media Service Automation",
+  "main": "runner.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Traverous/gale-crater.git"
+  },
+  "keywords": [
+    "Azure",
+    "Media",
+    "Services"
+  ],
+  "author": "Emad Ehsan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Traverous/gale-crater/issues"
+  },
+  "homepage": "https://github.com/Traverous/gale-crater#readme",
+  "dependencies": {
+    "axios": "^0.18.0"
+  }
+}
