@@ -1,6 +1,7 @@
 const axios = require('axios');
 const querystring = require('querystring');
 const fs = require('fs');
+const util = require('util');
 
 /**
 * Methods for interacting with Azure Media Services
@@ -381,7 +382,9 @@ const REST = {
   */
   uploadFile: async (UploadURL, filepath) => {
     try {
-      const fileBuffer = fs.readFileSync(filepath);
+      const readFile = util.promisify(fs.readFile);
+      // const fileBuffer = fs.readFileSync(filepath);
+      const fileBuffer = await readFile(filepath);
       const resp = await axios.put(UploadURL, fileBuffer,{
         headers: {
           'Content-Type': ' video/mp4',
@@ -395,7 +398,7 @@ const REST = {
       return true;
     } catch (e) {
       console.log('uploadFile: ERROR: ', e.response);
-      return null;
+      return false;
     }
   },
 
