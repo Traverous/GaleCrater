@@ -397,7 +397,7 @@ const REST = {
       // resp.status == 201
       return true;
     } catch (e) {
-      console.log('uploadFile: ERROR: ', e.response);
+      console.log('uploadFile: ERROR: ', e);
       return false;
     }
   },
