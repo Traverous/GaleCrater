@@ -56,119 +56,127 @@ function delay(time) {
 async function transcode (filename, filepath) {
   setupVariables();
 
-  /*
-  * Retrieve Access Token
-  */
-  let tokenResp = await REST.getAADAccessToken(VARS.AzureADSTSEndpoint, VARS.ClientID, VARS.ClientSecret);
-  VARS.AccessToken = tokenResp.access_token;
-  console.log('Fetched AccessToken!');
+  try {
+    /*
+    * Retrieve Access Token
+    */
+    let tokenResp = await REST.getAADAccessToken(VARS.AzureADSTSEndpoint, VARS.ClientID, VARS.ClientSecret);
+    VARS.AccessToken = tokenResp.access_token;
+    console.log('Fetched AccessToken!');
 
-  /*
-  * Access Policy with write permissions. Fetch the policy if one exists with the same name 
-  * or create it
-  */
-  let newPolicyName = 'TravUploadPolicy';
-  let aPolicy = await REST.fetchOrCreateAccessPolicy(VARS.RESTAPIEndpoint, VARS.AccessToken, newPolicyName, REST.WRITE_POLICY);
-  VARS.UploadAccessPolicyId = aPolicy.Id;
-  console.log('Fetched Access Policy: ', VARS.UploadAccessPolicyId);
+    /*
+    * Access Policy with write permissions. Fetch the policy if one exists with the same name 
+    * or create it
+    */
+    let newPolicyName = 'TravUploadPolicy';
+    let aPolicy = await REST.fetchOrCreateAccessPolicy(VARS.RESTAPIEndpoint, VARS.AccessToken, newPolicyName, REST.WRITE_POLICY);
+    VARS.UploadAccessPolicyId = aPolicy.Id;
+    console.log('Fetched Access Policy: ', VARS.UploadAccessPolicyId);
 
-  /*
-  * Prefix assets with a name and suffix with current time
-  */
-  let assetName = 'TravAsset_' + (new Date()).getTime();
-  let asset = await REST.createAsset(VARS.RESTAPIEndpoint, VARS.AccessToken, assetName);
-  console.log('Asset created: ', asset.Id, asset.Name);
-  VARS.LastAssetId = asset.Id;
+    /*
+    * Prefix assets with a name and suffix with current time
+    */
+    let assetName = 'TravAsset_' + (new Date()).getTime();
+    let asset = await REST.createAsset(VARS.RESTAPIEndpoint, VARS.AccessToken, assetName);
+    console.log('Asset created: ', asset.Id, asset.Name);
+    VARS.LastAssetId = asset.Id;
 
-  /*
-  * SAS Locator for uploading 
-  */
-  const locator = await REST.fetchLocator(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.UploadAccessPolicyId, VARS.LastAssetId, REST.WRITE_LOCATOR);
-  console.log('Fetched locator: ', locator.Id);
+    /*
+    * SAS Locator for uploading 
+    */
+    const locator = await REST.fetchLocator(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.UploadAccessPolicyId, VARS.LastAssetId, REST.WRITE_LOCATOR);
+    console.log('Fetched locator: ', locator.Id);
 
-  /*
-  * Upload URL
-  */
-  VARS.UploadURL = locator.BaseUri + '/' + filename + locator.ContentAccessComponent;
-  console.log('UploadURL: ', VARS.UploadURL);
+    /*
+    * Upload URL
+    */
+    VARS.UploadURL = locator.BaseUri + '/' + filename + locator.ContentAccessComponent;
+    console.log('UploadURL: ', VARS.UploadURL);
 
-  console.log('Uploading file: ', filepath, ' ...');
-  let isUploaded = await REST.uploadFile(VARS.UploadURL, filepath);
+    console.log('Uploading file: ', filepath, ' ...');
+    let isUploaded = await REST.uploadFile(VARS.UploadURL, filepath);
 
-  if (!isUploaded) {
-    console.log('File Upload ERRORED');
-    return;
-  }
-
-  /*
-  * create file info
-  */
-  let fileInfoCreated = await REST.createFileInfos(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.LastAssetId);
-  console.log('Created file infos: ', fileInfoCreated);
-
-  /*
-  * no need to request media processor each time. We already know the Id of Standard Encoding Media Processor
-  * nb:mpid:UUID:ff4df607-d419-42f0-bc17-a481b1331e56
-  */
-  // let mediaProcessor = await REST.getMediaProcessor(VARS.RESTAPIEndpoint, VARS.AccessToken);
-  // console.log('Media Processor: ', mediaProcessor);
-
-  let encodingJob = await REST.createJob(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.LastAssetId, assetName, VARS.MediaProcessorId);
-
-  let jobId = encodingJob.d.Id;
-  let outputMediaAsset = encodingJob.d.OutputMediaAssets;
-  /*
-  * Format: of OutputMediaAssets:
-  OutputMediaAssets: {
-    __deferred: {
-      uri: '<JOB_URL>/OutputMediaAssets'
+    if (!isUploaded) {
+      console.log('File Upload ERRORED');
+      return null;
     }
-  }
-  */
-  let outputAssetUrl = outputMediaAsset.__deferred.uri;
 
-  console.log('Encoding job started: ', jobId);
+    console.log('File uploaded!');
 
-  /*
-  * Actively tracking job state
-  */  
-  let isDone = false;
-  do {
-    console.log('Waiting for few sec before checking job state...');
-    await delay(5000);
-    let jobState = await REST.monitorJob(VARS.RESTAPIEndpoint, VARS.AccessToken, jobId);
+    /*
+    * create file info
+    */
+    let fileInfoCreated = await REST.createFileInfos(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.LastAssetId);
+    console.log('Created file infos: ', fileInfoCreated);
 
-    if (jobState.d.State == 3) {
-      console.log('Job done.');
-      isDone = true;
+    /*
+    * no need to request media processor each time. We already know the Id of Standard Encoding Media Processor
+    * nb:mpid:UUID:ff4df607-d419-42f0-bc17-a481b1331e56
+    */
+    // let mediaProcessor = await REST.getMediaProcessor(VARS.RESTAPIEndpoint, VARS.AccessToken);
+    // console.log('Media Processor: ', mediaProcessor);
+
+    let encodingJob = await REST.createJob(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.LastAssetId, assetName, VARS.MediaProcessorId);
+
+    let jobId = encodingJob.d.Id;
+    let outputMediaAsset = encodingJob.d.OutputMediaAssets;
+    /*
+    * Format: of OutputMediaAssets:
+    OutputMediaAssets: {
+      __deferred: {
+        uri: '<JOB_URL>/OutputMediaAssets'
+      }
     }
-  } while(!isDone);
+    */
+    let outputAssetUrl = outputMediaAsset.__deferred.uri;
 
-  /*
-  * Read Access Policy
-  */
-  let readPolicyName = 'TravReadPolicy';
-  let readPolicy = await REST.fetchOrCreateAccessPolicy(VARS.RESTAPIEndpoint, VARS.AccessToken, readPolicyName, REST.READ_POLICY);
-  VARS.ReadAccessPolicyId = readPolicy.Id;
-  console.log('Read Access Policy: ', readPolicy.Name, readPolicy.Id);
+    console.log('Encoding job started: ', jobId);
 
-  let outputAsset = await REST.getOutputAsset(outputAssetUrl, VARS.AccessToken);
-  if (outputAsset.value && outputAsset.value.length > 0) {
-    outputAsset = outputAsset.value[0];
-    console.log('Output Asset: ', outputAsset.Id);
+    /*
+    * Actively tracking job state
+    */  
+    let isDone = false;
+    do {
+      console.log('Waiting for few sec before checking job state...');
+      await delay(5000);
+      let jobState = await REST.monitorJob(VARS.RESTAPIEndpoint, VARS.AccessToken, jobId);
+
+      if (jobState.d.State == 3) {
+        console.log('Job done.');
+        isDone = true;
+      }
+    } while(!isDone);
+
+    /*
+    * Read Access Policy
+    */
+    let readPolicyName = 'TravReadPolicy';
+    let readPolicy = await REST.fetchOrCreateAccessPolicy(VARS.RESTAPIEndpoint, VARS.AccessToken, readPolicyName, REST.READ_POLICY);
+    VARS.ReadAccessPolicyId = readPolicy.Id;
+    console.log('Read Access Policy: ', readPolicy.Name, readPolicy.Id);
+
+    let outputAsset = await REST.getOutputAsset(outputAssetUrl, VARS.AccessToken);
+    if (outputAsset.value && outputAsset.value.length > 0) {
+      outputAsset = outputAsset.value[0];
+      console.log('Output Asset: ', outputAsset.Id);
+    }
+
+    /*
+    * Streaming locator
+    */
+    const streamingLocator = await REST.fetchLocator(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.ReadAccessPolicyId, outputAsset.Id, REST.READ_LOCATOR);
+    console.log('Streaming locator created: ', streamingLocator.Name, streamingLocator.Id);
+    console.log(streamingLocator);
+
+    /*
+    * return streaming path for DASH
+    */
+    return streamingLocator.Path;
+  } catch (e) {
+    console.log('ERROR: ', e);
+
+    return null;
   }
-
-  /*
-  * Streaming locator
-  */
-  const streamingLocator = await REST.fetchLocator(VARS.RESTAPIEndpoint, VARS.AccessToken, VARS.ReadAccessPolicyId, outputAsset.Id, REST.READ_LOCATOR);
-  console.log('Streaming locator created: ', streamingLocator.Name, streamingLocator.Id);
-  console.log(streamingLocator);
-
-  /*
-  * return streaming path for DASH
-  */
-  return streamingLocator.Path;
 }
 
 module.exports = {

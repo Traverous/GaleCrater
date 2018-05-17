@@ -7,6 +7,11 @@ async function run() {
   let filepath = './media/sample.mp4';
 
   let streamingUrl = await GaleCrater.transcode(filename, filepath);
+
+  if (streamingUrl == null) {
+    console.log('Operation could NOT be completed...');
+    return null;
+  }
   
   filename = filename.replace('.mp4', '');
   let dashUrl = streamingUrl + filename + '.ism/Manifest(format=mpd-time-csf)';
