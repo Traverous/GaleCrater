@@ -92,7 +92,7 @@ async function transcode (filename, filepath) {
   VARS.UploadURL = locator.BaseUri + '/' + filename + locator.ContentAccessComponent;
   console.log('UploadURL: ', VARS.UploadURL);
 
-  console.log('Uploading file: ', filepath);
+  console.log('Uploading file: ', filepath, ' ...');
   let isUploaded = await REST.uploadFile(VARS.UploadURL, filepath);
 
   if (!isUploaded) {

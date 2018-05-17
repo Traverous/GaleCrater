@@ -385,11 +385,15 @@ const REST = {
       const readFile = util.promisify(fs.readFile);
       // const fileBuffer = fs.readFileSync(filepath);
       const fileBuffer = await readFile(filepath);
+      const filesize = fileBuffer.length;
+      console.log('File size: ', filesize);
+
       const resp = await axios.put(UploadURL, fileBuffer,{
         headers: {
           'Content-Type': ' video/mp4',
           'x-ms-blob-type': 'BlockBlob'
-        }
+        },
+        maxContentLength: filesize
       });
 
       // console.log('Status: ', resp.status);

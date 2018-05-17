@@ -1,13 +1,16 @@
 # Gale Crater
 Video On Demand Server in Node.Js on top of Azure Media Service
 
+![](https://cdn-images-1.medium.com/max/2000/1*9GshhDeeSbSyH6JqQoDAiA.jpeg)
+
+
 ## Quick Start
 Clone this project
 ```
 $ git clone https://github.com/Traverous/GaleCrater
 ```
 
-Rename `config-example.js` to `config.js`. Fill in the required variables.
+Rename `config-example.js` to `config.js`. Fill in the required variables. Add some MP4 video file to 'media' folder. Rename it to sample.mp4
 
 Then to run
 
