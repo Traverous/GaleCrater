@@ -380,20 +380,26 @@ const REST = {
   /**
   * Uploads the file to azure storage's asset
   */
-  uploadFile: async (UploadURL, filepath) => {
+  uploadFile: async (UploadURL, filePath, fileName) => {
     try {
       const readFile = util.promisify(fs.readFile);
-      // const fileBuffer = fs.readFileSync(filepath);
-      const fileBuffer = await readFile(filepath);
-      const filesize = fileBuffer.length;
-      console.log('File size: ', filesize);
+      // const fileBuffer = fs.readFileSync(filePath);
+      const fileBuffer = await readFile(filePath);
+      const fileSize = fileBuffer.length;
+      console.log('File size: ', fileSize);
+
+      let fileMBs = fileSize / (1024*1024);
+      if (fileMBs > 100) {
+        console.log('File size more than 100 MBs: ', fileMBs, ' MBs')
+        return await REST.uploadFileChunks(UploadURL, fileBuffer);
+      }
 
       const resp = await axios.put(UploadURL, fileBuffer,{
         headers: {
           'Content-Type': ' video/mp4',
           'x-ms-blob-type': 'BlockBlob'
         },
-        maxContentLength: filesize
+        maxContentLength: fileSize
       });
 
       // console.log('Status: ', resp.status);
@@ -404,6 +410,106 @@ const REST = {
       console.log('uploadFile: ERROR: ', e);
       return false;
     }
+  },
+
+  /**
+  * Upload in chunks
+  */
+  uploadFileChunks: async (UploadURL, fileBuffer, filePath, fileName) => {
+    console.log('\n****TODO: upload file in buffer: ..: ***');
+
+    let fileSize = fileBuffer.length;
+    let maxBlockSize = 4 * 1024 * 1024; //Each file will be split in X MBs chunks
+    
+    let blockIds = [];
+    let blockIdPrefix = "block-";
+    let submitUri = UploadURL;
+
+    let numbBlocks = 0;
+    if (fileSize % maxBlockSize == 0) {
+      numbBlocks = fileSize / maxBlockSize;
+    } else {
+      numbBlocks = parseInt(fileSize / maxBlockSize, 10) + 1;
+    }
+
+    /*
+    * upload each block 1 at a time
+    */
+    for (var i = 0; i < numbBlocks; i++) {
+      let blockId = blockIdPrefix + REST.pad(i, 8);
+      console.log('blockId: ', blockId);
+      blockId = Buffer.from(blockId).toString('base64');
+      console.log('blockId base64: ', blockId);
+
+      blockIds.push(blockId);
+
+      let startIdx = i*maxBlockSize;
+      let endIdx = startIdx + maxBlockSize;
+      if (endIdx > fileSize) {
+        endIdx = fileSize;
+      }
+
+      let blockData = fileBuffer.slice(startIdx, endIdx);
+      let blockUrl = UploadURL + '&comp=block&blockid=' + blockId;
+
+      console.log('Uploading block# ', i, 'from bytes: ', startIdx, ' to ', endIdx);
+
+      try {
+        const resp = await axios({
+          method: 'put',
+          url: blockUrl,
+          data: blockData,
+          headers: {
+            'x-ms-blob-type': 'BlockBlob',
+            'Content-Length': blockData.length
+          }
+        });
+      } catch (e) {
+        console.log(`REST#uploadFileChunks: ${i}th block upload. ERROR: `, e);
+        return false;
+      }
+    }
+
+    // commit the blob
+    var uri = UploadURL + '&comp=blocklist';
+    var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
+    for (var i = 0; i < blockIds.length; i++) {
+        requestBody += '<Latest>' + blockIds[i] + '</Latest>';
+    }
+    requestBody += '</BlockList>';
+
+    console.log('REST#uploadFileChunks: Commiting Block List: ', uri);
+
+    try {
+      const resp = await axios({
+        method: 'put',
+        url: uri,
+        data: requestBody,
+        headers: {
+          'x-ms-blob-content-type': 'video/mp4',
+          'Content-Length': requestBody.length
+        }
+      });
+
+      console.log('Block List commit:', resp.status);
+      return true;
+    } catch (e) {
+      console.log('REST#uploadFileChunks: commiting block list: ERROR: ', e);
+    }
+
+    return false;
+  },
+
+  /**
+  * pad 0s
+  * @return string
+  */
+  pad: (number, length) => {
+      var str = '' + number;
+      while (str.length < length) {
+          str = '0' + str;
+      }
+      return str;
   },
 
   /**

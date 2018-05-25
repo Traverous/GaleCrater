@@ -53,7 +53,7 @@ function delay(time) {
    });
 }
 
-async function transcode (filename, filepath) {
+async function transcode (fileName, filePath) {
   setupVariables();
 
   try {
@@ -90,11 +90,11 @@ async function transcode (filename, filepath) {
     /*
     * Upload URL
     */
-    VARS.UploadURL = locator.BaseUri + '/' + filename + locator.ContentAccessComponent;
+    VARS.UploadURL = locator.BaseUri + '/' + fileName + locator.ContentAccessComponent;
     console.log('UploadURL: ', VARS.UploadURL);
 
-    console.log('Uploading file: ', filepath, ' ...');
-    let isUploaded = await REST.uploadFile(VARS.UploadURL, filepath);
+    console.log('Uploading file: ', filePath, ' ...');
+    let isUploaded = await REST.uploadFile(VARS.UploadURL, filePath, fileName);
 
     if (!isUploaded) {
       console.log('File Upload ERRORED');
