@@ -389,11 +389,13 @@ const REST = {
       console.log('File size: ', fileSize);
 
       let fileMBs = fileSize / (1024*1024);
+      console.log('File size in MBs: ', fileMBs);
       if (fileMBs > 100) {
-        console.log('File size more than 100 MBs: ', fileMBs, ' MBs')
+        console.log('File size more than 100 MBs: ', fileMBs, ' MBs', ' Upload in CHUNKS');
         return await REST.uploadFileChunks(UploadURL, fileBuffer);
       }
 
+      console.log('Uploading file the normal way since less than 100MBs');
       const resp = await axios.put(UploadURL, fileBuffer,{
         headers: {
           'Content-Type': ' video/mp4',
