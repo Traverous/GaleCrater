@@ -390,24 +390,26 @@ const REST = {
 
       let fileMBs = fileSize / (1024*1024);
       console.log('File size in MBs: ', fileMBs);
-      if (fileMBs > 100) {
-        console.log('File size more than 100 MBs: ', fileMBs, ' MBs', ' Upload in CHUNKS');
-        return await REST.uploadFileChunks(UploadURL, fileBuffer);
-      }
+      
+      // for all cases, uploading in chunks
+      return await REST.uploadFileChunks(UploadURL, fileBuffer);
 
-      console.log('Uploading file the normal way since less than 100MBs');
-      const resp = await axios.put(UploadURL, fileBuffer,{
-        headers: {
-          'Content-Type': ' video/mp4',
-          'x-ms-blob-type': 'BlockBlob'
-        },
-        maxContentLength: fileSize
-      });
-
-      // console.log('Status: ', resp.status);
-
-      // resp.status == 201
-      return true;
+      // previously, only the files larger than 100MBs were uploaded in chunks
+      // if (fileMBs > 100) {
+      //   console.log('File size more than 100 MBs: ', fileMBs, ' MBs', ' Upload in CHUNKS');
+      //   return await REST.uploadFileChunks(UploadURL, fileBuffer);
+      // }
+      // console.log('Uploading file the normal way since less than 100MBs');
+      // const resp = await axios.put(UploadURL, fileBuffer,{
+      //   headers: {
+      //     'Content-Type': ' video/mp4',
+      //     'x-ms-blob-type': 'BlockBlob'
+      //   },
+      //   maxContentLength: fileSize
+      // });
+      // // console.log('Status: ', resp.status);
+      // // resp.status == 201
+      // return true;
     } catch (e) {
       console.log('uploadFile: ERROR: ', e);
       return false;
