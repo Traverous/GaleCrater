@@ -392,7 +392,7 @@ const REST = {
       console.log('File size in MBs: ', fileMBs);
       
       // for all cases, uploading in chunks
-      return await REST.uploadFileChunks(UploadURL, fileBuffer);
+      return await REST.uploadFileChunks(UploadURL, fileBuffer, filePath, fileName);
 
       // previously, only the files larger than 100MBs were uploaded in chunks
       // if (fileMBs > 100) {
@@ -426,7 +426,10 @@ const REST = {
     let maxBlockSize = 4 * 1024 * 1024; //Each file will be split in X MBs chunks
     
     let blockIds = [];
-    let blockIdPrefix = "block-";
+    // let blockIdPrefix = "block-";
+    // something like b-sCLV last. All block ids would be (almost) unique now,
+    // because fileNames are usually the unique objectIds from Journeys Parse Class
+    let blockIdPrefix = "b-" + fileName.substr(0, 4); 
     let submitUri = UploadURL;
 
     let numbBlocks = 0;
